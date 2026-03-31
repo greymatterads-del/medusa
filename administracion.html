@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración</title>
+    <!-- No necesitamos Firebase SDK, usamos API REST -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            font-family: 'Courier New', monospace;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-guardar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-guardar:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-guardar:active {
+            transform: translateY(0);
+        }
+
+        .btn-limpiar {
+            background: #f0f0f0;
+            color: #333;
+            border: 2px solid #ddd;
+        }
+
+        .btn-limpiar:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-volver {
+            width: 100%;
+            background: #ddd;
+            color: #333;
+        }
+
+        .btn-volver:hover {
+            background: #ccc;
+        }
+
+        .mensaje {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+
+        .mensaje.exito {
+            display: block;
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .mensaje.error {
+            display: block;
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+
+        .info {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #0c5aa0;
+        }
+
+        .whatsapp-link {
+            display: inline-block;
+            color: #25D366;
+            text-decoration: none;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚙️ Panel de Admin</h1>
+        <p class="subtitle">Gestiona el número de WhatsApp</p>
+
+        <div class="info">
+            💡 El número que ingreses aquí aparecerá en la campaña y los usuarios podrán escribirte por WhatsApp.
+        </div>
+
+        <div class="mensaje" id="mensaje"></div>
+
+        <div class="form-group">
+            <label for="numeroWhatsapp">Número de WhatsApp:</label>
+            <input 
+                type="text" 
+                id="numeroWhatsapp" 
+                placeholder="Ej: 2236049325" 
+                maxlength="20"
+            >
+        </div>
+
+        <div class="button-group">
+            <button class="btn-guardar" onclick="guardarNumero()">✅ Guardar</button>
+            <button class="btn-limpiar" onclick="limpiarInput()">🗑️ Limpiar</button>
+        </div>
+
+        <button class="btn-volver" onclick="volver()">← Volver a la campaña</button>
+    </div>
+
+    <script>
+        // Configuración Firebase
+        const FIREBASE_URL = 'https://numeros-bc5a2-default-rtdb.firebaseio.com/whatsappNumber.json';
+        const NUMERO_DEFECTO = '2236049325';
+
+        // Cargar número cuando se abre la página
+        window.addEventListener('DOMContentLoaded', function() {
+            cargarNumero();
+        });
+
+        // Cargar número desde Firebase (API REST)
+        function cargarNumero() {
+            fetch(FIREBASE_URL)
+                .then(response => response.json())
+                .then(data => {
+                    const numero = data || NUMERO_DEFECTO;
+                    document.getElementById('numeroWhatsapp').value = numero;
+                })
+                .catch(error => {
+                    console.error('Error al cargar:', error);
+                    document.getElementById('numeroWhatsapp').value = NUMERO_DEFECTO;
+                    mostrarMensaje('No se pudo conectar a Firebase', 'error');
+                });
+        }
+
+        // Guardar número en Firebase (API REST)
+        function guardarNumero() {
+            const numero = document.getElementById('numeroWhatsapp').value.trim();
+            
+            if (!numero) {
+                mostrarMensaje('Por favor ingresa un número', 'error');
+                return;
+            }
+
+            // Validar que sea solo números
+            if (!/^\d+$/.test(numero)) {
+                mostrarMensaje('El número solo puede contener dígitos', 'error');
+                return;
+            }
+
+            // Guardar en Firebase
+            fetch(FIREBASE_URL, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(numero)
+            })
+            .then(response => response.json())
+            .then(data => {
+                mostrarMensaje('Número guardado correctamente ✅', 'exito');
+            })
+            .catch(error => {
+                console.error('Error al guardar:', error);
+                mostrarMensaje('Error al guardar el número', 'error');
+            });
+        }
+
+        // Limpiar input
+        function limpiarInput() {
+            document.getElementById('numeroWhatsapp').value = '';
+            document.getElementById('numeroWhatsapp').focus();
+        }
+
+        // Mostrar mensaje
+        function mostrarMensaje(texto, tipo) {
+            const elemento = document.getElementById('mensaje');
+            elemento.textContent = texto;
+            elemento.className = 'mensaje ' + tipo;
+            
+            // Limpiar mensaje después de 3 segundos si es éxito
+            if (tipo === 'exito') {
+                setTimeout(() => {
+                    elemento.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Volver
+        function volver() {
+            window.location.href = 'index.html';
+        }
+
+        // Permitir guardar con Enter
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                guardarNumero();
+            }
+        });
+    </script>
+</body>
+</html>
